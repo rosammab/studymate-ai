@@ -1,0 +1,26 @@
+# Ignore Virtual Environment
+venv/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+
+# Environment Variables
+.env
+
+# SQLite Database
+db.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Media Files
+media/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
