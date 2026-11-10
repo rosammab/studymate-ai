@@ -1,10 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class UserProfile(models.Model):
+
     user = models.OneToOneField(
         User,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="profile"
     )
 
     profile_picture = models.ImageField(
@@ -14,8 +17,7 @@ class UserProfile(models.Model):
     )
 
     phone_number = models.CharField(
-        max_length=15,
-        blank=True
+        max_length=15
     )
 
     university = models.CharField(
@@ -26,34 +28,32 @@ class UserProfile(models.Model):
         max_length=100
     )
 
-    year_of_study = models.PositiveIntegerField()
+    year_of_study = models.CharField(
+        max_length=20
+    )
 
     state = models.CharField(
         max_length=100
     )
 
     country = models.CharField(
-        max_length=100,
-        default="India"
+        max_length=100
     )
 
     board = models.CharField(
-        max_length=50,
-        blank=True
+        max_length=100
     )
 
     bio = models.TextField(
         blank=True
     )
 
-    study_goal = models.CharField(
-        max_length=255,
+    study_goal = models.TextField(
         blank=True
     )
 
     preferred_language = models.CharField(
-        max_length=50,
-        default="English"
+        max_length=50
     )
 
     created_at = models.DateTimeField(
