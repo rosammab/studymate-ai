@@ -10,7 +10,6 @@ class UserProfileAdmin(admin.ModelAdmin):
         "phone_number",
         "university",
         "course",
-        "year_of_study",
         "country",
     )
 
@@ -18,11 +17,9 @@ class UserProfileAdmin(admin.ModelAdmin):
         "user__username",
         "phone_number",
         "university",
-        "course",
     )
 
     list_filter = (
         "country",
-        "state",
         "course",
     )
