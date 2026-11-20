@@ -1,4 +1,6 @@
+
 from rest_framework import serializers
+
 from .models import (
     Quiz,
     Question,
@@ -8,8 +10,14 @@ from .models import (
 )
 
 
+# -----------------------------------
+# Quiz Serializer
+# -----------------------------------
+
 class QuizSerializer(serializers.ModelSerializer):
+
     user = serializers.ReadOnlyField(source="user.username")
+
     question_count = serializers.IntegerField(
         source="questions.count",
         read_only=True
@@ -18,93 +26,206 @@ class QuizSerializer(serializers.ModelSerializer):
     class Meta:
         model = Quiz
         fields = [
-            "id", "user", "title", "description",
-            "question_count", "created_at", "updated_at",
+            "id",
+            "user",
+            "title",
+            "description",
+            "question_count",
+            "created_at",
+            "updated_at",
         ]
+
         read_only_fields = [
-            "id", "user", "question_count",
-            "created_at", "updated_at",
+            "id",
+            "user",
+            "question_count",
+            "created_at",
+            "updated_at",
         ]
 
     def validate_title(self, value):
+
         value = value.strip()
+
         if not value:
             raise serializers.ValidationError(
                 "Quiz title cannot be empty."
             )
+
         return value
 
 
+# -----------------------------------
+# Public Quiz Option Serializer
+# -----------------------------------
+
 class QuizOptionPublicSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = QuizOption
-        fields = ["id", "option_text"]
+        fields = [
+            "id",
+            "option_text",
+        ]
 
+
+# -----------------------------------
+# Public Question Serializer
+# -----------------------------------
 
 class QuestionPublicSerializer(serializers.ModelSerializer):
-    options = QuizOptionPublicSerializer(many=True, read_only=True)
+
+    options = QuizOptionPublicSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Question
-        fields = ["id", "question_text", "marks", "options"]
+        fields = [
+            "id",
+            "question_text",
+            "marks",
+            "options",
+        ]
 
+
+# -----------------------------------
+# Quiz Detail Serializer
+# -----------------------------------
 
 class QuizDetailSerializer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source="user.username")
-    questions = QuestionPublicSerializer(many=True, read_only=True)
+
+    user = serializers.ReadOnlyField(
+        source="user.username"
+    )
+
+    questions = QuestionPublicSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Quiz
         fields = [
-            "id", "user", "title", "description",
-            "questions", "created_at"
+            "id",
+            "user",
+            "title",
+            "description",
+            "questions",
+            "created_at",
         ]
 
 
+# -----------------------------------
+# Question Serializer
+# -----------------------------------
+
 class QuestionSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Question
         fields = [
-            "id", "quiz", "question_text", "marks", "created_at"
+            "id",
+            "quiz",
+            "question_text",
+            "marks",
+            "created_at",
         ]
-        read_only_fields = ["id", "quiz", "created_at"]
+
+        read_only_fields = [
+            "id",
+            "quiz",
+            "created_at",
+        ]
 
     def validate_question_text(self, value):
+
         value = value.strip()
+
         if not value:
             raise serializers.ValidationError(
                 "Question cannot be empty."
             )
+
         return value
 
     def validate_marks(self, value):
+
         if value < 1:
             raise serializers.ValidationError(
                 "Marks must be at least 1."
             )
+
         return value
 
 
+# -----------------------------------
+# Quiz Option Serializer
+# -----------------------------------
+
 class QuizOptionSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = QuizOption
-        fields = ["id", "question", "option_text", "is_correct"]
-        read_only_fields = ["id", "question"]
+        fields = [
+            "id",
+            "question",
+            "option_text",
+            "is_correct",
+        ]
+
+        read_only_fields = [
+            "id",
+            "question",
+        ]
 
     def validate_option_text(self, value):
+
         value = value.strip()
+
         if not value:
             raise serializers.ValidationError(
                 "Option text cannot be empty."
             )
+
         return value
 
 
+# -----------------------------------
+# Quiz Submission Serializers
+# -----------------------------------
+
+class QuizAnswerSubmissionSerializer(serializers.Serializer):
+
+    question = serializers.IntegerField(min_value=1)
+
+    selected_option = serializers.IntegerField(
+        min_value=1,
+        allow_null=True,
+        required=False
+    )
+
+
+class QuizSubmissionSerializer(serializers.Serializer):
+
+    answers = QuizAnswerSubmissionSerializer(
+        many=True,
+        allow_empty=False
+    )
+
+
+# -----------------------------------
+# Quiz Answer Result Serializer
+# -----------------------------------
+
 class QuizAnswerResultSerializer(serializers.ModelSerializer):
+
     question_text = serializers.CharField(
         source="question.question_text",
         read_only=True
     )
+
     selected_option_text = serializers.CharField(
         source="selected_option.option_text",
         read_only=True,
@@ -114,21 +235,39 @@ class QuizAnswerResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuizAnswer
         fields = [
-            "id", "question", "question_text",
-            "selected_option", "selected_option_text", "is_correct",
+            "id",
+            "question",
+            "question_text",
+            "selected_option",
+            "selected_option_text",
+            "is_correct",
         ]
 
 
+# -----------------------------------
+# Quiz Attempt Serializer
+# -----------------------------------
+
 class QuizAttemptSerializer(serializers.ModelSerializer):
+
     quiz_title = serializers.CharField(
         source="quiz.title",
         read_only=True
     )
-    answers = QuizAnswerResultSerializer(many=True, read_only=True)
+
+    answers = QuizAnswerResultSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = QuizAttempt
         fields = [
-            "id", "quiz", "quiz_title", "score",
-            "total_marks", "submitted_at", "answers",
+            "id",
+            "quiz",
+            "quiz_title",
+            "score",
+            "total_marks",
+            "submitted_at",
+            "answers",
         ]

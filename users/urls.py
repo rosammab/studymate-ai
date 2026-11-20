@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework.permissions import AllowAny
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -25,17 +26,20 @@ urlpatterns = [
         name="register",
     ),
 
-    # Login - returns access and refresh tokens
-    path(
+        # Login - returns access and refresh tokens
+        path(
         "auth/login/",
-        TokenObtainPairView.as_view(),
+        TokenObtainPairView.as_view(
+            permission_classes=[AllowAny]
+        ),
         name="login",
     ),
 
-    # Refresh expired access token
     path(
         "auth/token/refresh/",
-        TokenRefreshView.as_view(),
+        TokenRefreshView.as_view(
+            permission_classes=[AllowAny]
+        ),
         name="token_refresh",
     ),
 

@@ -11,6 +11,11 @@ urlpatterns = [
     path("api/flashcards/", include("flashcards.urls")),
     path("api/quizzes/", include("quizzes.urls")),
     path("api/documents/", include("documents.urls")),
+    path("api/study-planner/", include("study_planner.urls")),
+    path("api/progress/", include("progress.urls")),
+    path("api/notifications/",include("notifications.urls")),
+    path("api/dashboard/",include("dashboard.urls")),
+    path("api/search/", include("search_engine.urls")),
 ]
 
 if settings.DEBUG:

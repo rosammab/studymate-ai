@@ -36,6 +36,7 @@ class FlashcardSerializer(serializers.ModelSerializer):
         return value.strip()
 
 
+
 class FlashcardSetSerializer(serializers.ModelSerializer):
 
     cards = FlashcardSerializer(many=True, read_only=True)
@@ -64,6 +65,11 @@ class FlashcardSetSerializer(serializers.ModelSerializer):
                 "Flashcard set title cannot be empty."
             )
         return value.strip()
+
+    def validate_description(self, value):
+        return value.strip()
+
+
 class FlashcardReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -79,6 +85,16 @@ class FlashcardReviewSerializer(serializers.ModelSerializer):
             "id",
             "reviewed_at",
         ]
+
+    def validate_flashcard(self, value):
+        request = self.context.get("request")
+
+        if request and value.flashcard_set.user_id != request.user.id:
+            raise serializers.ValidationError(
+                "You cannot review another user's flashcard."
+            )
+
+        return value
 
     def validate_result(self, value):
         if value not in ["known", "missed"]:
