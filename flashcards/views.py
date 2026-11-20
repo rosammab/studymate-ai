@@ -1,23 +1,23 @@
 
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
+from notifications.services import create_user_notification
 
-from .models import FlashcardSet, Flashcard
-from .models import FlashcardReview
-from .serializers import FlashcardReviewSerializer
+from progress.services import create_study_activity
+
+from .models import FlashcardSet, Flashcard, FlashcardReview
 from .serializers import (
     FlashcardSetSerializer,
     FlashcardSerializer,
+    FlashcardReviewSerializer,
 )
 
 
 class FlashcardSetListCreateAPIView(generics.ListCreateAPIView):
-    """
-    GET: List the logged-in user's flashcard sets.
-    POST: Create a new flashcard set.
-    """
+    
 
     serializer_class = FlashcardSetSerializer
     permission_classes = [IsAuthenticated]
@@ -34,12 +34,7 @@ class FlashcardSetListCreateAPIView(generics.ListCreateAPIView):
 class FlashcardSetDetailAPIView(
     generics.RetrieveUpdateDestroyAPIView
 ):
-    """
-    GET: Retrieve one flashcard set.
-    PUT: Replace the set's editable data.
-    PATCH: Partially update the set.
-    DELETE: Delete the set.
-    """
+    
 
     serializer_class = FlashcardSetSerializer
     permission_classes = [IsAuthenticated]
@@ -92,6 +87,9 @@ class FlashcardDetailAPIView(
         return Flashcard.objects.filter(
             flashcard_set__user=self.request.user
         )
+
+
+
 class FlashcardReviewCreateAPIView(generics.CreateAPIView):
 
     serializer_class = FlashcardReviewSerializer
@@ -99,18 +97,38 @@ class FlashcardReviewCreateAPIView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
 
-        flashcard_id = self.request.data.get("flashcard")
+        flashcard_id = serializer.validated_data["flashcard"].id
 
+        # Verify that the flashcard belongs to the authenticated user
         flashcard = get_object_or_404(
             Flashcard,
             id=flashcard_id,
             flashcard_set__user=self.request.user
         )
 
-        serializer.save(
-            user=self.request.user,
-            flashcard=flashcard
-        )
+        with transaction.atomic():
+
+            # Save review for the authenticated user
+            serializer.save(
+                user=self.request.user,
+                flashcard=flashcard
+            )
+
+            # Update study progress
+            create_study_activity(
+                user=self.request.user,
+                activity_type="flashcard",
+                count=1,
+                duration_minutes=0
+            )
+
+            # Create notification
+            create_user_notification(
+                user=self.request.user,
+                title="Flashcard Reviewed",
+                message="You successfully reviewed a flashcard.",
+                notification_type="flashcard"
+            )
 
 
 class FlashcardReviewListAPIView(generics.ListAPIView):

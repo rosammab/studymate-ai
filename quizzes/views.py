@@ -1,6 +1,9 @@
 
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from progress.services import create_study_activity
+from notifications.services import create_user_notification
+
 
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
@@ -21,6 +24,7 @@ from .serializers import (
     QuestionSerializer,
     QuizOptionSerializer,
     QuizAttemptSerializer,
+    QuizSubmissionSerializer
 )
 
 from .permissions import IsQuizOwnerOrReadOnly
@@ -38,14 +42,17 @@ class QuizListCreateAPIView(generics.ListCreateAPIView):
 
 
 class QuizDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Quiz.objects.all()
-    permission_classes = [IsAuthenticated, IsQuizOwnerOrReadOnly]
+    serializer_class = QuizSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Quiz.objects.filter(user=self.request.user)
 
     def get_serializer_class(self):
         if self.request.method == "GET":
             return QuizDetailSerializer
-        return QuizSerializer
 
+        return QuizSerializer
 
 class QuestionListAPIView(generics.ListAPIView):
     serializer_class = QuestionSerializer
@@ -84,20 +91,33 @@ class QuizOptionCreateAPIView(generics.CreateAPIView):
         serializer.save(question=question)
 
 
+
+
 class QuizSubmitAPIView(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request, quiz_id):
-        answers = request.data.get("answers")
 
-        if not isinstance(answers, list):
-            return Response(
-                {"error": "Answers must be a list."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Validate request using serializer
+        submission_serializer = QuizSubmissionSerializer(
+            data=request.data
+        )
 
-        quiz = get_object_or_404(Quiz, id=quiz_id)
+        submission_serializer.is_valid(
+            raise_exception=True
+        )
 
+        answers = submission_serializer.validated_data["answers"]
+
+        # Get quiz belonging to logged-in user
+        quiz = get_object_or_404(
+            Quiz,
+            id=quiz_id,
+            user=request.user
+        )
+
+        # Get quiz questions and options
         questions = {
             question.id: question
             for question in quiz.questions.prefetch_related("options")
@@ -111,19 +131,19 @@ class QuizSubmitAPIView(APIView):
 
         submitted = {}
         score = 0
-        total_marks = sum(q.marks for q in questions.values())
 
+        total_marks = sum(
+            question.marks
+            for question in questions.values()
+        )
+
+        # Validate submitted answers
         for answer in answers:
-            if not isinstance(answer, dict):
-                return Response(
-                    {"error": "Each answer must be an object."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
 
-            question_id = answer.get("question_id")
-            option_id = answer.get("selected_option_id")
+            question_id = answer["question"]
+            option_id = answer.get("selected_option")
 
-            if type(question_id) is not int or question_id not in questions:
+            if question_id not in questions:
                 return Response(
                     {"error": "Invalid question ID."},
                     status=status.HTTP_400_BAD_REQUEST
@@ -137,24 +157,29 @@ class QuizSubmitAPIView(APIView):
 
             question = questions[question_id]
 
+            # Allow unanswered questions
             if option_id is None:
                 submitted[question_id] = None
                 continue
 
-            if type(option_id) is not int:
-                return Response(
-                    {"error": "Invalid option ID."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
+            # Check whether option belongs to question
             option = next(
-                (o for o in question.options.all() if o.id == option_id),
+                (
+                    opt
+                    for opt in question.options.all()
+                    if opt.id == option_id
+                ),
                 None
             )
 
             if option is None:
                 return Response(
-                    {"error": "Selected option does not belong to this question."},
+                    {
+                        "error": (
+                            "Selected option does not belong "
+                            "to this question."
+                        )
+                    },
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -163,7 +188,9 @@ class QuizSubmitAPIView(APIView):
             if option.is_correct:
                 score += question.marks
 
+        # Save attempt, progress and notification atomically
         with transaction.atomic():
+
             attempt = QuizAttempt.objects.create(
                 user=request.user,
                 quiz=quiz,
@@ -174,6 +201,7 @@ class QuizSubmitAPIView(APIView):
             answer_objects = []
 
             for question_id, question in questions.items():
+
                 selected_option = submitted.get(question_id)
 
                 answer_objects.append(
@@ -183,16 +211,40 @@ class QuizSubmitAPIView(APIView):
                         selected_option=selected_option,
                         is_correct=(
                             selected_option.is_correct
-                            if selected_option else False
+                            if selected_option
+                            else False
                         )
                     )
                 )
 
             QuizAnswer.objects.bulk_create(answer_objects)
 
+            # Update study progress
+            create_study_activity(
+                user=request.user,
+                activity_type="quiz",
+                count=1,
+                duration_minutes=0
+            )
+
+            # Create notification
+            create_user_notification(
+                user=request.user,
+                title="Quiz Completed",
+                message=f"You successfully completed the quiz: {quiz.title}.",
+                notification_type="quiz"
+            )
+
         percentage = (
             round((score / total_marks) * 100, 2)
-            if total_marks else 0
+            if total_marks
+            else 0
+        )
+
+        correct_answers = sum(
+            1
+            for option in submitted.values()
+            if option and option.is_correct
         )
 
         return Response(
@@ -202,11 +254,10 @@ class QuizSubmitAPIView(APIView):
                 "score": score,
                 "total_marks": total_marks,
                 "percentage": percentage,
-                "correct_answers": sum(
-                    1 for option in submitted.values()
-                    if option and option.is_correct
-                ),
+                "correct_answers": correct_answers,
                 "total_questions": len(questions),
+                "progress_updated": True,
+                "notification_created": True
             },
             status=status.HTTP_201_CREATED
         )
