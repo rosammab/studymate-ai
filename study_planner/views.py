@@ -79,32 +79,29 @@ class StudySessionDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
         )
 
 
-
-
 class StudySessionCompleteAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
 
-        session = get_object_or_404(
-            StudySession,
-            pk=pk,
-            study_plan__user=request.user
-        )
+        with transaction.atomic():
 
-        # Prevent duplicate completion
-        if session.status == "completed":
-            return Response(
-                {
-                    "message": "Session is already completed.",
-                    "progress_updated": False,
-                    "notification_created": False
-                },
-                status=status.HTTP_200_OK
+            session = get_object_or_404(
+                StudySession.objects.select_for_update(),
+                pk=pk,
+                study_plan__user=request.user
             )
 
-        with transaction.atomic():
+            if session.status == "completed":
+                return Response(
+                    {
+                        "message": "Session is already completed.",
+                        "progress_updated": False,
+                        "notification_created": False
+                    },
+                    status=status.HTTP_200_OK
+                )
 
             session.status = "completed"
             session.completed_at = timezone.now()
@@ -113,7 +110,6 @@ class StudySessionCompleteAPIView(APIView):
                 update_fields=["status", "completed_at"]
             )
 
-            # Automatically update progress
             create_study_activity(
                 user=request.user,
                 activity_type="study_session",
@@ -122,7 +118,6 @@ class StudySessionCompleteAPIView(APIView):
                 activity_date=timezone.localdate()
             )
 
-            # Automatically create notification
             create_user_notification(
                 user=request.user,
                 title="Study Session Completed",
@@ -142,6 +137,7 @@ class StudySessionCompleteAPIView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
 
 
 class StudyGoalListCreateAPIView(generics.ListCreateAPIView):
@@ -211,37 +207,34 @@ class StudyPlannerSummaryAPIView(APIView):
         })
     
 
+
 class StudyGoalCompleteAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
 
-        goal = get_object_or_404(
-            StudyGoal,
-            pk=pk,
-            user=request.user
-        )
+        with transaction.atomic():
 
-        # Prevent duplicate notifications
-        if goal.status == "completed":
-            return Response(
-                {
-                    "message": "Study goal is already completed.",
-                    "notification_created": False
-                },
-                status=status.HTTP_200_OK
+            goal = get_object_or_404(
+                StudyGoal.objects.select_for_update(),
+                pk=pk,
+                user=request.user
             )
 
-        with transaction.atomic():
+            if goal.status == "completed":
+                return Response(
+                    {
+                        "message": "Study goal is already completed.",
+                        "notification_created": False
+                    },
+                    status=status.HTTP_200_OK
+                )
 
             goal.status = "completed"
 
-            goal.save(
-                update_fields=["status"]
-            )
+            goal.save(update_fields=["status"])
 
-            # Automatically create notification
             create_user_notification(
                 user=request.user,
                 title="Study Goal Achieved",

@@ -1,6 +1,4 @@
 
-from django.utils import timezone
-
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -10,7 +8,7 @@ from .models import Notification
 from .serializers import NotificationSerializer
 
 
-class NotificationListCreateAPIView(generics.ListCreateAPIView):
+class NotificationListAPIView(generics.ListAPIView):
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
 
@@ -19,27 +17,29 @@ class NotificationListCreateAPIView(generics.ListCreateAPIView):
             user=self.request.user
         )
 
-        # Filter unread notifications
         unread = self.request.query_params.get("unread")
 
         if unread == "true":
             queryset = queryset.filter(is_read=False)
-
         elif unread == "false":
             queryset = queryset.filter(is_read=True)
 
-        # Filter by notification type
         notification_type = self.request.query_params.get("type")
 
         if notification_type:
+            valid_types = {
+                choice[0]
+                for choice in Notification.NOTIFICATION_TYPES
+            }
+
+            if notification_type not in valid_types:
+                return Notification.objects.none()
+
             queryset = queryset.filter(
                 notification_type=notification_type
             )
 
         return queryset
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
 
 class NotificationDetailAPIView(generics.RetrieveDestroyAPIView):

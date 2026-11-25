@@ -17,45 +17,45 @@ from .serializers import (
 from .services import update_user_progress
 
 
-class StudyActivityListCreateAPIView(generics.ListCreateAPIView):
+class StudyActivityListAPIView(generics.ListAPIView):
+
     serializer_class = StudyActivitySerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = StudyActivity.objects.filter(user=self.request.user)
+
+        queryset = StudyActivity.objects.filter(
+            user=self.request.user
+        )
 
         activity_type = self.request.query_params.get("type")
 
         if activity_type:
-            queryset = queryset.filter(activity_type=activity_type)
+            queryset = queryset.filter(
+                activity_type=activity_type
+            )
 
         return queryset
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-        update_user_progress(self.request.user)
 
+class StudyActivityDetailAPIView(generics.RetrieveAPIView):
 
-class StudyActivityDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = StudyActivitySerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return StudyActivity.objects.filter(user=self.request.user)
 
-    def perform_update(self, serializer):
-        serializer.save()
-        update_user_progress(self.request.user)
-
-    def perform_destroy(self, instance):
-        instance.delete()
-        update_user_progress(self.request.user)
+        return StudyActivity.objects.filter(
+            user=self.request.user
+        )
 
 
 class UserProgressAPIView(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+
         progress = update_user_progress(request.user)
 
         serializer = UserProgressSerializer(progress)
@@ -64,11 +64,14 @@ class UserProgressAPIView(APIView):
 
 
 class DailyProgressAPIView(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+
         try:
             days = int(request.query_params.get("days", 7))
+
         except (TypeError, ValueError):
             return Response(
                 {"error": "Days must be a valid integer."},
@@ -82,6 +85,7 @@ class DailyProgressAPIView(APIView):
             )
 
         today = timezone.localdate()
+
         start_date = today - timedelta(days=days - 1)
 
         activities = (
@@ -107,11 +111,15 @@ class DailyProgressAPIView(APIView):
 
 
 class ActivityBreakdownAPIView(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+
         breakdown = (
-            StudyActivity.objects.filter(user=request.user)
+            StudyActivity.objects.filter(
+                user=request.user
+            )
             .values("activity_type")
             .annotate(
                 total_minutes=Sum("duration_minutes"),

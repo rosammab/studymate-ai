@@ -2,7 +2,7 @@
 from django.urls import path
 
 from .views import (
-    NotificationListCreateAPIView,
+    NotificationListAPIView,
     NotificationDetailAPIView,
     MarkNotificationReadAPIView,
     MarkAllNotificationsReadAPIView,
@@ -12,31 +12,27 @@ from .views import (
 urlpatterns = [
     path(
         "",
-        NotificationListCreateAPIView.as_view(),
-        name="notification-list-create"
+        NotificationListAPIView.as_view(),
+        name="notification-list",
     ),
-
     path(
         "<int:pk>/",
         NotificationDetailAPIView.as_view(),
-        name="notification-detail"
+        name="notification-detail",
     ),
-
     path(
         "<int:pk>/read/",
         MarkNotificationReadAPIView.as_view(),
-        name="notification-mark-read"
+        name="notification-mark-read",
     ),
-
     path(
         "mark-all-read/",
         MarkAllNotificationsReadAPIView.as_view(),
-        name="notification-mark-all-read"
+        name="notification-mark-all-read",
     ),
-
     path(
         "unread-count/",
         UnreadNotificationCountAPIView.as_view(),
-        name="notification-unread-count"
+        name="notification-unread-count",
     ),
 ]

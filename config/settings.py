@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -54,6 +55,7 @@ INSTALLED_APPS = [
     "progress",
     "notifications",
     "search_engine",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
@@ -64,6 +66,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -170,5 +173,23 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 from decouple import config
 
-OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
-OPENAI_MODEL = config("OPENAI_MODEL", default="gpt-4.1-mini")
+
+GEMINI_API_KEY = config(
+    "GEMINI_API_KEY",
+    default=""
+)
+
+GEMINI_MODEL = config(
+    "GEMINI_MODEL",
+    default="gemini-2.5-flash-lite"
+)
+
+GEMINI_IMAGE_MODEL = config(
+    "GEMINI_IMAGE_MODEL",
+    default="gemini-3.1-flash-image"
+)
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]

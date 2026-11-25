@@ -58,6 +58,7 @@ class DocumentListCreateAPIView(generics.ListCreateAPIView):
         document.save()
 
 
+
 class DocumentDetailAPIView(generics.RetrieveDestroyAPIView):
 
     serializer_class = StudyDocumentSerializer
@@ -70,9 +71,12 @@ class DocumentDetailAPIView(generics.RetrieveDestroyAPIView):
 
     @transaction.atomic
     def perform_destroy(self, instance):
+
         file = instance.file
 
         instance.delete()
 
         if file:
-            file.delete(save=False)
+            transaction.on_commit(
+                lambda: file.delete(save=False)
+            )

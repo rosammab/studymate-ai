@@ -13,18 +13,15 @@ from .serializers import (
 )
 
 
-def get_model_count(app_label, model_names):
+def get_model_count(app_label, model_name):
     """
-    Return the count of the first available model.
+    Return the count of a model if it exists.
     """
-    for model_name in model_names:
-        try:
-            model = apps.get_model(app_label, model_name)
-            return model.objects.count()
-        except LookupError:
-            continue
-
-    return 0
+    try:
+        model = apps.get_model(app_label, model_name)
+        return model.objects.count()
+    except LookupError:
+        return 0
 
 
 class AdminDashboardStatsAPIView(APIView):
@@ -37,46 +34,45 @@ class AdminDashboardStatsAPIView(APIView):
             "total_users": User.objects.count(),
 
             "total_notes": get_model_count(
-                "notes", ["Note"]
+                "notes", "Note"
             ),
 
             "total_flashcard_sets": get_model_count(
-                "flashcards",
-                ["FlashcardSet", "FlashcardDeck", "Flashcard"]
+                "flashcards", "FlashcardSet"
             ),
 
             "total_flashcards": get_model_count(
-                "flashcards", ["Flashcard"]
+                "flashcards", "Flashcard"
             ),
 
             "total_quizzes": get_model_count(
-                "quizzes", ["Quiz"]
+                "quizzes", "Quiz"
             ),
 
             "total_quiz_attempts": get_model_count(
-                "quizzes", ["QuizAttempt"]
+                "quizzes", "QuizAttempt"
             ),
 
             "total_documents": get_model_count(
-                "documents", ["StudyDocument"]
+                "documents", "StudyDocument"
             ),
 
             "total_study_plans": get_model_count(
-                "study_planner", ["StudyPlan"]
+                "study_planner", "StudyPlan"
             ),
 
             "total_study_sessions": get_model_count(
-                "study_planner", ["StudySession"]
+                "study_planner", "StudySession"
             ),
 
             "total_notifications": get_model_count(
-                "notifications", ["Notification"]
+                "notifications", "Notification"
             ),
 
             "unread_notifications": 0,
 
             "total_study_activities": get_model_count(
-                "progress", ["StudyActivity"]
+                "progress", "StudyActivity"
             ),
         }
 
@@ -84,9 +80,11 @@ class AdminDashboardStatsAPIView(APIView):
             Notification = apps.get_model(
                 "notifications", "Notification"
             )
+
             data["unread_notifications"] = (
                 Notification.objects.filter(is_read=False).count()
             )
+
         except LookupError:
             pass
 
@@ -103,7 +101,10 @@ class AdminRecentUsersAPIView(APIView):
 
         users = User.objects.order_by("-date_joined")[:10]
 
-        serializer = RecentUserSerializer(users, many=True)
+        serializer = RecentUserSerializer(
+            users,
+            many=True
+        )
 
         return Response(serializer.data)
 
@@ -116,6 +117,7 @@ class AdminRecentActivitiesAPIView(APIView):
             StudyActivity = apps.get_model(
                 "progress", "StudyActivity"
             )
+
         except LookupError:
             return Response([])
 
@@ -124,7 +126,8 @@ class AdminRecentActivitiesAPIView(APIView):
         )[:10]
 
         serializer = RecentActivitySerializer(
-            activities, many=True
+            activities,
+            many=True
         )
 
         return Response(serializer.data)
