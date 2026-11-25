@@ -65,6 +65,7 @@ class StudySessionSerializer(serializers.ModelSerializer):
         return attrs
 
 
+
 class StudyPlanSerializer(serializers.ModelSerializer):
 
     sessions = StudySessionSerializer(many=True, read_only=True)
@@ -76,6 +77,7 @@ class StudyPlanSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudyPlan
+
         fields = [
             "id",
             "title",
@@ -99,6 +101,7 @@ class StudyPlanSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+
         start_date = attrs.get(
             "start_date",
             getattr(self.instance, "start_date", None)
@@ -109,10 +112,29 @@ class StudyPlanSerializer(serializers.ModelSerializer):
             getattr(self.instance, "end_date", None)
         )
 
+        # Validate study plan dates
         if start_date and end_date and end_date < start_date:
             raise serializers.ValidationError({
                 "end_date": "End date cannot be before start date."
             })
+
+        # Prevent changing plan dates when existing sessions
+        # fall outside the new date range
+        if self.instance and start_date and end_date:
+
+            invalid_sessions = self.instance.sessions.exclude(
+                scheduled_date__gte=start_date,
+                scheduled_date__lte=end_date
+            )
+
+            if invalid_sessions.exists():
+                raise serializers.ValidationError({
+                    "end_date": (
+                        "The plan dates cannot be changed because "
+                        "some existing sessions fall outside "
+                        "the new dates."
+                    )
+                })
 
         return attrs
 

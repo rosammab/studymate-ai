@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+
 urlpatterns = [
     path("admin/", admin.site.urls),
 
@@ -16,6 +17,7 @@ urlpatterns = [
     path("api/notifications/",include("notifications.urls")),
     path("api/dashboard/",include("dashboard.urls")),
     path("api/search/", include("search_engine.urls")),
+    path("api/ai-assistant/", include("ai_assistant.urls")),
 ]
 
 if settings.DEBUG:
@@ -23,3 +25,5 @@ if settings.DEBUG:
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT
     )
+
+    

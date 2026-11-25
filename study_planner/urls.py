@@ -1,6 +1,5 @@
 
 from django.urls import path
-from . import views
 
 from .views import (
     StudyPlanListCreateAPIView,
@@ -26,7 +25,6 @@ urlpatterns = [
         StudyPlanListCreateAPIView.as_view(),
         name="plan-list-create"
     ),
-
     path(
         "plans/<int:pk>/",
         StudyPlanDetailAPIView.as_view(),
@@ -39,13 +37,11 @@ urlpatterns = [
         StudySessionListCreateAPIView.as_view(),
         name="session-list-create"
     ),
-
     path(
         "sessions/<int:pk>/",
         StudySessionDetailAPIView.as_view(),
         name="session-detail"
     ),
-
     path(
         "sessions/<int:pk>/complete/",
         StudySessionCompleteAPIView.as_view(),
@@ -58,11 +54,15 @@ urlpatterns = [
         StudyGoalListCreateAPIView.as_view(),
         name="goal-list-create"
     ),
-
     path(
         "goals/<int:pk>/",
         StudyGoalDetailAPIView.as_view(),
         name="goal-detail"
+    ),
+    path(
+        "goals/<int:pk>/complete/",
+        StudyGoalCompleteAPIView.as_view(),
+        name="goal-complete"
     ),
 
     # Dashboard Summary
@@ -72,18 +72,15 @@ urlpatterns = [
         name="planner-summary"
     ),
 
-    path("goals/<int:pk>/complete/",StudyGoalCompleteAPIView.as_view(),
-    name="goal-complete"
-),
+    # Study Reminders
     path(
         "reminders/",
-        views.StudyReminderListCreateAPIView.as_view(),
+        StudyReminderListCreateAPIView.as_view(),
         name="reminder-list-create"
     ),
-
     path(
         "reminders/<int:pk>/",
-        views.StudyReminderDetailAPIView.as_view(),
+        StudyReminderDetailAPIView.as_view(),
         name="reminder-detail"
     ),
 ]

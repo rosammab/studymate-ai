@@ -1,3 +1,87 @@
+
+from django.conf import settings
 from django.db import models
 
-# Create your models here.
+
+class Conversation(models.Model):
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ai_conversations"
+    )
+
+    title = models.CharField(
+        max_length=200,
+        default="New conversation"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"{self.title} - {self.user}"
+
+
+class ChatMessage(models.Model):
+
+    ROLE_CHOICES = [
+        ("user", "User"),
+        ("assistant", "Assistant"),
+    ]
+
+    conversation = models.ForeignKey(
+        Conversation,
+        on_delete=models.CASCADE,
+        related_name="messages"
+    )
+
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES
+    )
+
+    content = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.role}: {self.content[:50]}"
+
+class GeneratedArtifact(models.Model):
+
+    ARTIFACT_TYPES = [
+        ("pdf", "PDF"),
+        ("image", "Image"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ai_generated_artifacts"
+    )
+
+    artifact_type = models.CharField(
+        max_length=20,
+        choices=ARTIFACT_TYPES
+    )
+
+    title = models.CharField(max_length=200)
+
+    prompt = models.TextField()
+
+    file = models.FileField(
+        upload_to="ai_generated/%Y/%m/"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.artifact_type}"

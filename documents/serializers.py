@@ -7,10 +7,15 @@ from .models import StudyDocument
 
 class StudyDocumentSerializer(serializers.ModelSerializer):
 
-    title = serializers.CharField(required=False)
+    title = serializers.CharField(
+        required=False,
+        allow_blank=False,
+        max_length=255
+    )
 
     class Meta:
         model = StudyDocument
+
         fields = [
             "id",
             "title",
@@ -35,7 +40,23 @@ class StudyDocumentSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def validate_title(self, value):
+        value = value.strip()
+
+        if not value:
+            raise serializers.ValidationError(
+                "Document title cannot be empty."
+            )
+
+        return value
+
     def validate_file(self, value):
+
+        if value.size == 0:
+            raise serializers.ValidationError(
+                "Empty files cannot be uploaded."
+            )
+
         extension = Path(value.name).suffix.lower()
 
         allowed_extensions = [".pdf", ".docx"]
@@ -45,7 +66,7 @@ class StudyDocumentSerializer(serializers.ModelSerializer):
                 "Only PDF and DOCX files are supported."
             )
 
-        max_size = 10 * 1024 * 1024  # 10 MB
+        max_size = 10 * 1024 * 1024
 
         if value.size > max_size:
             raise serializers.ValidationError(
@@ -55,6 +76,7 @@ class StudyDocumentSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+
         if not validated_data.get("title"):
             validated_data["title"] = Path(
                 validated_data["file"].name
